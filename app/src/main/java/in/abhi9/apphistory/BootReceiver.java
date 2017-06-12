@@ -9,6 +9,9 @@ public class BootReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-
+        if (AppLogService.getServiceObject() == null) {
+            Intent srvcIntent = new Intent(context, AppLogService.class);
+            context.startService(srvcIntent);
+        }
     }
 }

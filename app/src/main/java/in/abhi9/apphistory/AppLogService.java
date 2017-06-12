@@ -13,13 +13,11 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 public class AppLogService extends Service {
     private static AppLogService self = null;
-    String TAG = "AppLogService";
+    final String TAG = "AppLogService";
     private Integer nextLeft = 0;
     private Integer nextRight = 0;
     private String lastLaunchedBySwipe = "";
@@ -43,14 +41,6 @@ public class AppLogService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         // The service is starting, due to a call to startService()
         Log.d(TAG, "Service started");
-
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                Log.d(TAG, "Running");
-            }
-        }, 5000, 1000);
 
         self = this;
 
@@ -83,7 +73,7 @@ public class AppLogService extends Service {
             nextApp = recents.get(nextLeft);
         } catch (IndexOutOfBoundsException e) {
             nextLeft--;
-            Log.d(TAG, "No more next Index");
+            Log.d(TAG, "No more left step");
             return;
         }
 
