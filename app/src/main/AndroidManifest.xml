@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="in.abhi9.apphistory">
+    package="in.abhi9.recentswipo">
 
     <uses-permission android:name="android.permission.REAL_GET_TASKS" />
     <uses-permission android:name="android.permission.GET_DETAILED_TASKS" />
@@ -20,7 +20,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".MainActivity"
+            android:name="in.abhi9.recentswipo.MainActivity"
             android:clearTaskOnLaunch="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
@@ -33,24 +33,24 @@
         </activity>
 
         <activity
-            android:name=".SwipeLeftActivity"
+            android:name="in.abhi9.recentswipo.SwipeLeftActivity"
             android:clearTaskOnLaunch="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
             android:theme="@android:style/Theme.NoDisplay" />
         <activity
-            android:name=".SwipeRightActivity"
+            android:name="in.abhi9.recentswipo.SwipeRightActivity"
             android:clearTaskOnLaunch="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
             android:theme="@android:style/Theme.NoDisplay" />
 
-        <service android:name=".AppLogService" />
+        <service android:name="in.abhi9.recentswipo.AppLogService" />
 
         <receiver
-            android:name=".BootReceiver"
+            android:name="in.abhi9.recentswipo.BootReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>

@@ -1,4 +1,4 @@
-package in.abhi9.apphistory;
+package in.abhi9.recentswipo;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
