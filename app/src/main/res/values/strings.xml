@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Recent Swipo</string>
+    <string name="starting_service">Service just started. Swipping should work now!</string>
 </resources>
