@@ -72,7 +72,7 @@ public class AppLogService extends Service {
         try {
             nextApp = recents.get(nextLeft);
         } catch (IndexOutOfBoundsException e) {
-            nextLeft--;
+            nextLeft = recents.size() - 1;
             Log.d(TAG, "No more left step");
             return;
         }
