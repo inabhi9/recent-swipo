@@ -18,7 +18,7 @@ import java.util.Objects;
 public class AppLogService extends Service {
     private static AppLogService self = null;
     final String TAG = "AppLogService";
-    private Integer nextLeft = 0;
+    private Integer nextLeft = 1;
     private Integer nextRight = 0;
     private String lastLaunchedBySwipe = "";
     private ActivityManager mActivityManager;
@@ -60,29 +60,28 @@ public class AppLogService extends Service {
 
         if (!Objects.equals(getCurrentActivity(), lastLaunchedBySwipe)) {
             Log.d(TAG, "App launch sequence changed externally");
-            nextLeft = 0;
+            nextLeft = 1;
         }
 
         if (Objects.equals(getCurrentActivity(), getHomeLauncher())) {
-            nextLeft = -1;
+            nextLeft = 0;
             Log.d(TAG, "Currently on Home");
-        }
-        nextLeft++;
-
-        try {
-            nextApp = recents.get(nextLeft);
-        } catch (IndexOutOfBoundsException e) {
-            nextLeft = recents.size() - 1;
-            Log.d(TAG, "No more left step");
-            return;
+        } else if (nextLeft == 0) {
+            nextLeft++;
+            Log.d(TAG, "We are not on home though value is 0 made by right swipe.");
         }
 
+        if (nextLeft >= recents.size()) return;
+
+        nextApp = recents.get(nextLeft);
         mActivityManager.moveTaskToFront(
                 nextApp.id,
                 ActivityManager.MOVE_TASK_NO_USER_ACTION,
                 getStartActivityOption("left").toBundle()
         );
         lastLaunchedBySwipe = nextApp.baseIntent.getComponent().getPackageName();
+        nextLeft++;
+        Log.d(TAG, "SL - NextLeft: " + nextLeft);
     }
 
     public void swipeRight() {
@@ -91,15 +90,8 @@ public class AppLogService extends Service {
 
         if (!Objects.equals(getCurrentActivity(), lastLaunchedBySwipe)) {
             Log.d(TAG, "App launch sequence changed externally");
-            nextRight = 0;
-            nextLeft = 0;
-        }
-
-        if (nextLeft == 0) {
-            Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getHomeLauncher());
-            startActivity(launchIntent, getStartActivityOption("right").toBundle());
-            Log.d(TAG, "No more right step");
-            return;
+            nextRight = -2;
+            nextLeft = 1;
         }
 
         if (Objects.equals(getCurrentActivity(), getHomeLauncher())) {
@@ -107,13 +99,20 @@ public class AppLogService extends Service {
             Log.d(TAG, "Currently on Home");
             return;
         }
+
+        if ((nextLeft == 1 && nextRight == 1) || nextLeft == 0) nextRight = -2;
+
+
         nextRight++;
 
         try {
             nextApp = recents.get(nextRight);
         } catch (IndexOutOfBoundsException e) {
             nextRight = 0;
-            Log.d(TAG, "No more next Index");
+            nextLeft = 1;
+            Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getHomeLauncher());
+            startActivity(launchIntent, getStartActivityOption("right").toBundle());
+            Log.d(TAG, "No more right step");
             return;
         }
 
@@ -122,8 +121,10 @@ public class AppLogService extends Service {
                 ActivityManager.MOVE_TASK_NO_USER_ACTION,
                 getStartActivityOption("right").toBundle()
         );
+        if (nextLeft >= recents.size()) nextLeft--;
         nextLeft--;
         lastLaunchedBySwipe = nextApp.baseIntent.getComponent().getPackageName();
+        Log.d(TAG, "SR - NextLeft: " + nextLeft + ". CurrentRight: " + nextRight);
     }
 
     private List<ActivityManager.RecentTaskInfo> getRecents() {
@@ -145,6 +146,8 @@ public class AppLogService extends Service {
             if (Objects.equals(packageName, getPackageName())) continue;
             // Ignoring home package
             if (Objects.equals(packageName, homeLauncherPackage)) continue;
+            // Ignoring any system ui activity
+            if (Objects.equals(packageName, "com.android.systemui")) continue;
 
             packages.add(task);
         }

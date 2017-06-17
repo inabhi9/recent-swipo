@@ -56,6 +56,18 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="in.abhi9.recentswipo.OmniSwitchToggleActivity"
+            android:clearTaskOnLaunch="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <service android:name="in.abhi9.recentswipo.AppLogService" />
 
