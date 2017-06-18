@@ -18,10 +18,11 @@ import java.util.Objects;
 public class AppLogService extends Service {
     private static AppLogService self = null;
     final String TAG = "AppLogService";
-    private Integer nextLeft = 1;
-    private Integer nextRight = 0;
     private String lastLaunchedBySwipe = "";
     private ActivityManager mActivityManager;
+    private List<ActivityManager.RecentTaskInfo> recents = new ArrayList<>();
+    private Integer next = 0;
+    private ActivityManager.RecentTaskInfo launcherTask;
 
     public static AppLogService getServiceObject() {
         return self;
@@ -54,77 +55,96 @@ public class AppLogService extends Service {
     }
 
     public void swipeLeft() {
-        List<ActivityManager.RecentTaskInfo> recents = getRecents();
         ActivityManager.RecentTaskInfo nextApp;
-        nextRight = 0;
 
-        if (!Objects.equals(getCurrentActivity(), lastLaunchedBySwipe)) {
-            Log.d(TAG, "App launch sequence changed externally");
-            nextLeft = 1;
-        }
+        this.initList();
 
         if (Objects.equals(getCurrentActivity(), getHomeLauncher())) {
-            nextLeft = 0;
-            Log.d(TAG, "Currently on Home");
-        } else if (nextLeft == 0) {
-            nextLeft++;
-            Log.d(TAG, "We are not on home though value is 0 made by right swipe.");
+            next = 0;
+            Log.d(TAG, "Currently on Home. Launching 1st app");
         }
 
-        if (nextLeft >= recents.size()) return;
+        if ((nextApp = getNextActiveApp("forward")) == null) {
+            Log.d(TAG, "SL - No next active app found");
+            return;
+        }
 
-        nextApp = recents.get(nextLeft);
+        Log.d(TAG, "App to Launch:" + nextApp.baseIntent.getComponent().getPackageName());
+
         mActivityManager.moveTaskToFront(
                 nextApp.id,
                 ActivityManager.MOVE_TASK_NO_USER_ACTION,
                 getStartActivityOption("left").toBundle()
         );
         lastLaunchedBySwipe = nextApp.baseIntent.getComponent().getPackageName();
-        nextLeft++;
-        Log.d(TAG, "SL - NextLeft: " + nextLeft);
+        next++;
+        Log.d(TAG, "SL - Next: " + next);
     }
 
     public void swipeRight() {
-        List<ActivityManager.RecentTaskInfo> recents = getRecents();
         ActivityManager.RecentTaskInfo nextApp;
 
-        if (!Objects.equals(getCurrentActivity(), lastLaunchedBySwipe)) {
-            Log.d(TAG, "App launch sequence changed externally");
-            nextRight = -2;
-            nextLeft = 1;
-        }
+        this.initList();
 
         if (Objects.equals(getCurrentActivity(), getHomeLauncher())) {
-            nextRight = 0;
-            Log.d(TAG, "Currently on Home");
+            next = 0;
+            Log.d(TAG, "SR - Currently on Home");
             return;
         }
 
-        if ((nextLeft == 1 && nextRight == 1) || nextLeft == 0) nextRight = -2;
-
-
-        nextRight++;
-
-        try {
-            nextApp = recents.get(nextRight);
-        } catch (IndexOutOfBoundsException e) {
-            nextRight = 0;
-            nextLeft = 1;
-            Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getHomeLauncher());
-            startActivity(launchIntent, getStartActivityOption("right").toBundle());
-            Log.d(TAG, "No more right step");
+        if ((nextApp = getNextActiveApp("backward")) == null) {
+            Log.d(TAG, "SL - No previous active app found. Going home.");
+            mActivityManager.moveTaskToFront(
+                    launcherTask.id,
+                    ActivityManager.MOVE_TASK_NO_USER_ACTION,
+                    getStartActivityOption("right").toBundle()
+            );
+            next = 0;
             return;
         }
+
+        Log.d(TAG, "App to Launch:" + nextApp.baseIntent.getComponent().getPackageName());
 
         mActivityManager.moveTaskToFront(
                 nextApp.id,
                 ActivityManager.MOVE_TASK_NO_USER_ACTION,
                 getStartActivityOption("right").toBundle()
         );
-        if (nextLeft >= recents.size()) nextLeft--;
-        nextLeft--;
         lastLaunchedBySwipe = nextApp.baseIntent.getComponent().getPackageName();
-        Log.d(TAG, "SR - NextLeft: " + nextLeft + ". CurrentRight: " + nextRight);
+        next--;
+        Log.d(TAG, "SL - Next: " + next);
+    }
+
+    private void initList() {
+        if (this.recents.size() == 0
+                || !Objects.equals(getCurrentActivity(), lastLaunchedBySwipe)) {
+            this.recents = getRecents();
+            this.recents.add(0, launcherTask);
+            next = 1;
+            Log.d(TAG, "App launch sequence changed externally");
+        }
+
+    }
+
+    private ActivityManager.RecentTaskInfo getNextActiveApp(String direction) {
+        List<ActivityManager.RecentTaskInfo> recentTasks = getRecents();
+        List<Integer> ids = new ArrayList<>();
+
+        for (ActivityManager.RecentTaskInfo task : recentTasks) {
+            ids.add(task.id);
+        }
+
+        if (Objects.equals(direction, "forward")) {
+            for (Integer i = this.next + 1; i < this.recents.size(); i++) {
+                if (ids.contains(this.recents.get(i).id)) return this.recents.get(i);
+            }
+        } else {
+            for (Integer i = this.next - 1; i > -1; i--) {
+                if (ids.contains(this.recents.get(i).id)) return this.recents.get(i);
+            }
+        }
+
+        return null;
     }
 
     private List<ActivityManager.RecentTaskInfo> getRecents() {
@@ -145,7 +165,10 @@ public class AppLogService extends Service {
             // Ignoring this app
             if (Objects.equals(packageName, getPackageName())) continue;
             // Ignoring home package
-            if (Objects.equals(packageName, homeLauncherPackage)) continue;
+            if (Objects.equals(packageName, homeLauncherPackage)) {
+                launcherTask = task;
+                continue;
+            }
             // Ignoring any system ui activity
             if (Objects.equals(packageName, "com.android.systemui")) continue;
 
